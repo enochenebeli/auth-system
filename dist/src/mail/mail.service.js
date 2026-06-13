@@ -9,6 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MailService = void 0;
 const common_1 = require("@nestjs/common");
 let MailService = class MailService {
+    async sendVerificationEmail(email, token) {
+        console.log(`[MAIL STUB] Verification email to ${email}, token: ${token}`);
+    }
+    async sendPasswordResetEmail(email, token) {
+        console.log(`[MAIL STUB] Password reset email to ${email}, token: ${token}`);
+    }
+    async sendMagicLinkEmail(email, token) {
+        console.log(`[MAIL STUB] Magic link email to ${email}, token: ${token}`);
+    }
 };
 exports.MailService = MailService;
 exports.MailService = MailService = __decorate([
