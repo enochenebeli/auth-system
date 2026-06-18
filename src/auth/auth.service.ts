@@ -4,24 +4,24 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
-import { SessionsService } from './sessions.service';
-import { MailService } from '../mail/mail.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { TokenType, User } from '@prisma/client';
-import * as speakeasy from 'speakeasy';
-import * as qrcode from 'qrcode';
-import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../prisma/prisma.service";
+import { UsersService } from "../users/users.service";
+import { SessionsService } from "./sessions.service";
+import { MailService } from "../mail/mail.service";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
+import { TokenType, User } from "@prisma/client";
+import * as speakeasy from "speakeasy";
+import * as qrcode from "qrcode";
+import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
 
 // Shape of the JWT payload we encode into every access token
 interface JwtPayload {
-  sub: string;       // subject — the user's ID
+  sub: string; // subject — the user's ID
   email: string;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
@@ -55,7 +55,8 @@ export class AuthService {
     await this.createAndSendVerificationEmail(user);
 
     return {
-      message: 'Registration successful. Please check your email to verify your account.',
+      message:
+        "Registration successful. Please check your email to verify your account.",
       userId: user.id,
     };
   }
@@ -71,13 +72,15 @@ export class AuthService {
       // We throw the same error whether email or password is wrong.
       // This prevents attackers from knowing which one failed
       // (called "user enumeration prevention").
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     // Step 2 — verify password
     // Users who registered via OAuth have no password
     if (!user.passwordHash) {
-      throw new UnauthorizedException('This account uses social login. Please sign in with Google or GitHub.');
+      throw new UnauthorizedException(
+        "This account uses social login. Please sign in with Google or GitHub.",
+      );
     }
 
     const passwordValid = await this.usersService.verifyPassword(
@@ -86,23 +89,27 @@ export class AuthService {
     );
 
     if (!passwordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     // Step 3 — check email verification
     if (!user.emailVerified) {
-      throw new ForbiddenException('Please verify your email before logging in.');
+      throw new ForbiddenException(
+        "Please verify your email before logging in.",
+      );
     }
 
     // Step 4 — check 2FA if enabled
     if (user.twoFactorEnabled) {
       if (!dto.totpCode) {
-        throw new UnauthorizedException('Two-factor authentication code is required.');
+        throw new UnauthorizedException(
+          "Two-factor authentication code is required.",
+        );
       }
 
       const isValidTotp = speakeasy.totp.verify({
         secret: user.twoFactorSecret!,
-        encoding: 'base32',
+        encoding: "base32",
         token: dto.totpCode,
         window: 1, // Allow 1 step before/after for clock drift
       });
@@ -111,7 +118,9 @@ export class AuthService {
         // Try backup codes if TOTP fails
         const backupValid = await this.verifyBackupCode(user.id, dto.totpCode);
         if (!backupValid) {
-          throw new UnauthorizedException('Invalid two-factor authentication code.');
+          throw new UnauthorizedException(
+            "Invalid two-factor authentication code.",
+          );
         }
       }
     }
@@ -135,7 +144,10 @@ export class AuthService {
   // ─── LOGOUT ────────────────────────────────────────────────────────
   // Deletes the session tied to this refresh token.
   // Even if the token is missing, we return success — idempotent logout.
-  async logout(userId: string, refreshToken: string | undefined): Promise<void> {
+  async logout(
+    userId: string,
+    refreshToken: string | undefined,
+  ): Promise<void> {
     if (!refreshToken) return;
 
     const session = await this.sessionsService.findByRefreshToken(refreshToken);
@@ -149,36 +161,35 @@ export class AuthService {
   // ─── REFRESH TOKENS ────────────────────────────────────────────────
   // The frontend calls this when the access token expires (every 15min).
   // We validate the refresh token, rotate it, and issue a new access token.
-  async refreshTokens(
-    refreshToken: string | undefined,
-    meta: RequestMetadata,
-  ) {
+  async refreshTokens(refreshToken: string | undefined, meta: RequestMetadata) {
     if (!refreshToken) {
-      throw new UnauthorizedException('No refresh token provided.');
+      throw new UnauthorizedException("No refresh token provided.");
     }
 
     // Look up the session
     const session = await this.sessionsService.findByRefreshToken(refreshToken);
 
     if (!session) {
-      throw new UnauthorizedException('Invalid refresh token.');
+      throw new UnauthorizedException("Invalid refresh token.");
     }
 
     // Check expiry
     if (this.sessionsService.isSessionExpired(session)) {
       await this.sessionsService.deleteSession(session.id);
-      throw new UnauthorizedException('Session expired. Please log in again.');
+      throw new UnauthorizedException("Session expired. Please log in again.");
     }
 
     // Get the user this session belongs to
     const user = await this.usersService.findById(session.userId);
 
     if (!user) {
-      throw new UnauthorizedException('User not found.');
+      throw new UnauthorizedException("User not found.");
     }
 
     // Rotate the refresh token — old one is now invalid
-    const rotatedSession = await this.sessionsService.rotateRefreshToken(session.id);
+    const rotatedSession = await this.sessionsService.rotateRefreshToken(
+      session.id,
+    );
 
     // Generate a fresh access token
     const accessToken = this.generateAccessToken(user);
@@ -198,15 +209,19 @@ export class AuthService {
     });
 
     if (!tokenRecord || tokenRecord.type !== TokenType.EMAIL_VERIFICATION) {
-      throw new BadRequestException('Invalid or expired verification token.');
+      throw new BadRequestException("Invalid or expired verification token.");
     }
 
     if (tokenRecord.expiresAt < new Date()) {
-      throw new BadRequestException('Verification token has expired. Please request a new one.');
+      throw new BadRequestException(
+        "Verification token has expired. Please request a new one.",
+      );
     }
 
     if (tokenRecord.usedAt) {
-      throw new BadRequestException('This verification link has already been used.');
+      throw new BadRequestException(
+        "This verification link has already been used.",
+      );
     }
 
     // Mark the token as used (single-use enforcement)
@@ -218,7 +233,7 @@ export class AuthService {
     // Mark the user's email as verified
     await this.usersService.markEmailVerified(tokenRecord.userId);
 
-    return { message: 'Email verified successfully. You can now log in.' };
+    return { message: "Email verified successfully. You can now log in." };
   }
 
   // ─── RESEND VERIFICATION EMAIL ─────────────────────────────────────
@@ -275,7 +290,7 @@ export class AuthService {
       tokenRecord.usedAt ||
       tokenRecord.expiresAt < new Date()
     ) {
-      throw new BadRequestException('Invalid or expired password reset token.');
+      throw new BadRequestException("Invalid or expired password reset token.");
     }
 
     // Mark token as used before changing password (prevents race conditions)
@@ -291,7 +306,10 @@ export class AuthService {
     // resetting the password should log out every active session
     await this.sessionsService.deleteAllUserSessions(tokenRecord.userId);
 
-    return { message: 'Password reset successful. Please log in with your new password.' };
+    return {
+      message:
+        "Password reset successful. Please log in with your new password.",
+    };
   }
 
   // ─── GET SESSIONS ──────────────────────────────────────────────────
@@ -307,7 +325,7 @@ export class AuthService {
 
     // Verify the session belongs to this user before deleting
     if (!session || session.userId !== userId) {
-      throw new NotFoundException('Session not found.');
+      throw new NotFoundException("Session not found.");
     }
 
     await this.sessionsService.deleteSession(sessionId);
@@ -321,7 +339,8 @@ export class AuthService {
     let currentSessionId: string | undefined;
 
     if (refreshToken) {
-      const session = await this.sessionsService.findByRefreshToken(refreshToken);
+      const session =
+        await this.sessionsService.findByRefreshToken(refreshToken);
       currentSessionId = session?.id;
     }
 
@@ -335,12 +354,12 @@ export class AuthService {
   async setup2FA(userId: string) {
     const user = await this.usersService.findById(userId);
 
-    if (!user) throw new NotFoundException('User not found.');
+    if (!user) throw new NotFoundException("User not found.");
 
     // Generate a new TOTP secret
     const secret = speakeasy.generateSecret({
       name: `AuthSystem (${user.email})`, // Label shown in authenticator app
-      issuer: 'AuthSystem',
+      issuer: "AuthSystem",
     });
 
     // Store the secret temporarily (enabled = false until verified)
@@ -350,7 +369,7 @@ export class AuthService {
     const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url!);
 
     return {
-      secret: secret.base32,  // User can manually enter this if QR fails
+      secret: secret.base32, // User can manually enter this if QR fails
       qrCode: qrCodeUrl,
     };
   }
@@ -362,18 +381,18 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
 
     if (!user || !user.twoFactorSecret) {
-      throw new BadRequestException('Please set up 2FA first.');
+      throw new BadRequestException("Please set up 2FA first.");
     }
 
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
-      encoding: 'base32',
+      encoding: "base32",
       token: totpCode,
       window: 1,
     });
 
     if (!isValid) {
-      throw new UnauthorizedException('Invalid verification code.');
+      throw new UnauthorizedException("Invalid verification code.");
     }
 
     // Officially enable 2FA
@@ -383,7 +402,7 @@ export class AuthService {
     const backupCodes = await this.generateBackupCodes(userId);
 
     return {
-      message: '2FA enabled successfully.',
+      message: "2FA enabled successfully.",
       // Show backup codes ONCE — user must save these
       backupCodes,
     };
@@ -394,18 +413,18 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
 
     if (!user || !user.twoFactorEnabled) {
-      throw new BadRequestException('2FA is not enabled on this account.');
+      throw new BadRequestException("2FA is not enabled on this account.");
     }
 
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret!,
-      encoding: 'base32',
+      encoding: "base32",
       token: totpCode,
       window: 1,
     });
 
     if (!isValid) {
-      throw new UnauthorizedException('Invalid verification code.');
+      throw new UnauthorizedException("Invalid verification code.");
     }
 
     // Clear the secret and disable 2FA
@@ -429,10 +448,10 @@ export class AuthService {
       emailVerified: user.emailVerified,
       twoFactorEnabled: user.twoFactorEnabled,
     };
-    
+
     return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') as any,
+      secret: this.configService.get<string>("JWT_ACCESS_SECRET"),
+      expiresIn: this.configService.get("JWT_ACCESS_EXPIRES_IN") as any,
     });
   }
 
@@ -478,7 +497,7 @@ export class AuthService {
 
     for (let i = 0; i < 8; i++) {
       // Generate a random 8-character alphanumeric code
-      const code = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
+      const code = uuidv4().replace(/-/g, "").substring(0, 8).toUpperCase();
       codes.push(code);
 
       // Hash before storing — same principle as passwords

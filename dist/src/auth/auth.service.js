@@ -35,39 +35,39 @@ let AuthService = class AuthService {
         const user = await this.usersService.createUser(dto.email, dto.password);
         await this.createAndSendVerificationEmail(user);
         return {
-            message: 'Registration successful. Please check your email to verify your account.',
+            message: "Registration successful. Please check your email to verify your account.",
             userId: user.id,
         };
     }
     async login(dto, meta) {
         const user = await this.usersService.findByEmail(dto.email);
         if (!user) {
-            throw new common_1.UnauthorizedException('Invalid email or password');
+            throw new common_1.UnauthorizedException("Invalid email or password");
         }
         if (!user.passwordHash) {
-            throw new common_1.UnauthorizedException('This account uses social login. Please sign in with Google or GitHub.');
+            throw new common_1.UnauthorizedException("This account uses social login. Please sign in with Google or GitHub.");
         }
         const passwordValid = await this.usersService.verifyPassword(dto.password, user.passwordHash);
         if (!passwordValid) {
-            throw new common_1.UnauthorizedException('Invalid email or password');
+            throw new common_1.UnauthorizedException("Invalid email or password");
         }
         if (!user.emailVerified) {
-            throw new common_1.ForbiddenException('Please verify your email before logging in.');
+            throw new common_1.ForbiddenException("Please verify your email before logging in.");
         }
         if (user.twoFactorEnabled) {
             if (!dto.totpCode) {
-                throw new common_1.UnauthorizedException('Two-factor authentication code is required.');
+                throw new common_1.UnauthorizedException("Two-factor authentication code is required.");
             }
             const isValidTotp = speakeasy.totp.verify({
                 secret: user.twoFactorSecret,
-                encoding: 'base32',
+                encoding: "base32",
                 token: dto.totpCode,
                 window: 1,
             });
             if (!isValidTotp) {
                 const backupValid = await this.verifyBackupCode(user.id, dto.totpCode);
                 if (!backupValid) {
-                    throw new common_1.UnauthorizedException('Invalid two-factor authentication code.');
+                    throw new common_1.UnauthorizedException("Invalid two-factor authentication code.");
                 }
             }
         }
@@ -89,19 +89,19 @@ let AuthService = class AuthService {
     }
     async refreshTokens(refreshToken, meta) {
         if (!refreshToken) {
-            throw new common_1.UnauthorizedException('No refresh token provided.');
+            throw new common_1.UnauthorizedException("No refresh token provided.");
         }
         const session = await this.sessionsService.findByRefreshToken(refreshToken);
         if (!session) {
-            throw new common_1.UnauthorizedException('Invalid refresh token.');
+            throw new common_1.UnauthorizedException("Invalid refresh token.");
         }
         if (this.sessionsService.isSessionExpired(session)) {
             await this.sessionsService.deleteSession(session.id);
-            throw new common_1.UnauthorizedException('Session expired. Please log in again.');
+            throw new common_1.UnauthorizedException("Session expired. Please log in again.");
         }
         const user = await this.usersService.findById(session.userId);
         if (!user) {
-            throw new common_1.UnauthorizedException('User not found.');
+            throw new common_1.UnauthorizedException("User not found.");
         }
         const rotatedSession = await this.sessionsService.rotateRefreshToken(session.id);
         const accessToken = this.generateAccessToken(user);
@@ -115,20 +115,20 @@ let AuthService = class AuthService {
             where: { token },
         });
         if (!tokenRecord || tokenRecord.type !== client_1.TokenType.EMAIL_VERIFICATION) {
-            throw new common_1.BadRequestException('Invalid or expired verification token.');
+            throw new common_1.BadRequestException("Invalid or expired verification token.");
         }
         if (tokenRecord.expiresAt < new Date()) {
-            throw new common_1.BadRequestException('Verification token has expired. Please request a new one.');
+            throw new common_1.BadRequestException("Verification token has expired. Please request a new one.");
         }
         if (tokenRecord.usedAt) {
-            throw new common_1.BadRequestException('This verification link has already been used.');
+            throw new common_1.BadRequestException("This verification link has already been used.");
         }
         await this.prisma.token.update({
             where: { id: tokenRecord.id },
             data: { usedAt: new Date() },
         });
         await this.usersService.markEmailVerified(tokenRecord.userId);
-        return { message: 'Email verified successfully. You can now log in.' };
+        return { message: "Email verified successfully. You can now log in." };
     }
     async resendVerificationEmail(email) {
         const user = await this.usersService.findByEmail(email);
@@ -166,7 +166,7 @@ let AuthService = class AuthService {
             tokenRecord.type !== client_1.TokenType.PASSWORD_RESET ||
             tokenRecord.usedAt ||
             tokenRecord.expiresAt < new Date()) {
-            throw new common_1.BadRequestException('Invalid or expired password reset token.');
+            throw new common_1.BadRequestException("Invalid or expired password reset token.");
         }
         await this.prisma.token.update({
             where: { id: tokenRecord.id },
@@ -174,7 +174,9 @@ let AuthService = class AuthService {
         });
         await this.usersService.updatePassword(tokenRecord.userId, newPassword);
         await this.sessionsService.deleteAllUserSessions(tokenRecord.userId);
-        return { message: 'Password reset successful. Please log in with your new password.' };
+        return {
+            message: "Password reset successful. Please log in with your new password.",
+        };
     }
     async getSessions(userId) {
         return this.sessionsService.findAllByUserId(userId);
@@ -184,7 +186,7 @@ let AuthService = class AuthService {
             where: { id: sessionId },
         });
         if (!session || session.userId !== userId) {
-            throw new common_1.NotFoundException('Session not found.');
+            throw new common_1.NotFoundException("Session not found.");
         }
         await this.sessionsService.deleteSession(sessionId);
     }
@@ -199,10 +201,10 @@ let AuthService = class AuthService {
     async setup2FA(userId) {
         const user = await this.usersService.findById(userId);
         if (!user)
-            throw new common_1.NotFoundException('User not found.');
+            throw new common_1.NotFoundException("User not found.");
         const secret = speakeasy.generateSecret({
             name: `AuthSystem (${user.email})`,
-            issuer: 'AuthSystem',
+            issuer: "AuthSystem",
         });
         await this.usersService.update2FASecret(userId, secret.base32, false);
         const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
@@ -214,37 +216,37 @@ let AuthService = class AuthService {
     async enable2FA(userId, totpCode) {
         const user = await this.usersService.findById(userId);
         if (!user || !user.twoFactorSecret) {
-            throw new common_1.BadRequestException('Please set up 2FA first.');
+            throw new common_1.BadRequestException("Please set up 2FA first.");
         }
         const isValid = speakeasy.totp.verify({
             secret: user.twoFactorSecret,
-            encoding: 'base32',
+            encoding: "base32",
             token: totpCode,
             window: 1,
         });
         if (!isValid) {
-            throw new common_1.UnauthorizedException('Invalid verification code.');
+            throw new common_1.UnauthorizedException("Invalid verification code.");
         }
         await this.usersService.update2FASecret(userId, user.twoFactorSecret, true);
         const backupCodes = await this.generateBackupCodes(userId);
         return {
-            message: '2FA enabled successfully.',
+            message: "2FA enabled successfully.",
             backupCodes,
         };
     }
     async disable2FA(userId, totpCode) {
         const user = await this.usersService.findById(userId);
         if (!user || !user.twoFactorEnabled) {
-            throw new common_1.BadRequestException('2FA is not enabled on this account.');
+            throw new common_1.BadRequestException("2FA is not enabled on this account.");
         }
         const isValid = speakeasy.totp.verify({
             secret: user.twoFactorSecret,
-            encoding: 'base32',
+            encoding: "base32",
             token: totpCode,
             window: 1,
         });
         if (!isValid) {
-            throw new common_1.UnauthorizedException('Invalid verification code.');
+            throw new common_1.UnauthorizedException("Invalid verification code.");
         }
         await this.usersService.update2FASecret(userId, null, false);
         await this.prisma.backupCode.deleteMany({ where: { userId } });
@@ -257,8 +259,8 @@ let AuthService = class AuthService {
             twoFactorEnabled: user.twoFactorEnabled,
         };
         return this.jwtService.sign(payload, {
-            secret: this.configService.get('JWT_ACCESS_SECRET'),
-            expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN'),
+            secret: this.configService.get("JWT_ACCESS_SECRET"),
+            expiresIn: this.configService.get("JWT_ACCESS_EXPIRES_IN"),
         });
     }
     sanitizeUser(user) {
@@ -288,7 +290,7 @@ let AuthService = class AuthService {
         await this.prisma.backupCode.deleteMany({ where: { userId } });
         const codes = [];
         for (let i = 0; i < 8; i++) {
-            const code = (0, uuid_1.v4)().replace(/-/g, '').substring(0, 8).toUpperCase();
+            const code = (0, uuid_1.v4)().replace(/-/g, "").substring(0, 8).toUpperCase();
             codes.push(code);
             const codeHash = await bcrypt.hash(code, 10);
             await this.prisma.backupCode.create({
