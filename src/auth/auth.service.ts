@@ -49,7 +49,7 @@ export class AuthService {
   // issue tokens yet. User must verify their email before logging in.
   async register(dto: RegisterDto, meta: RequestMetadata) {
     // createUser handles duplicate email check + bcrypt hashing
-    const user = await this.usersService.createUser(dto.email, dto.password);
+    const user = await this.usersService.createUser(dto.email, dto.password, dto.name);
 
     // Generate a secure one-time token for email verification
     await this.createAndSendVerificationEmail(user);

@@ -17,8 +17,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request, Response } from 'express';
+import { RateLimit, RateLimitGuard } from '../redis/rate-limit.guard';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -47,7 +47,8 @@ export class AuthController {
   // Returns the created user (without passwordHash) and a verification
   // notice — no tokens yet; user must verify email first.
   @Post('register')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit(5, 60)
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.authService.register(dto, {
@@ -61,7 +62,8 @@ export class AuthController {
   // long-lived refresh token in an HttpOnly cookie.
   // If the account has 2FA enabled, dto.totpCode is required.
   @Post('login')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit(5, 60)
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
@@ -126,7 +128,8 @@ export class AuthController {
   // Rate-limited. Always returns 202 whether the email exists or not
   // to prevent user enumeration.
   @Post('resend-verification')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit(3, 60)
   @HttpCode(HttpStatus.ACCEPTED)
   async resendVerification(@Body() dto: ResendVerificationDto) {
     await this.authService.resendVerificationEmail(dto.email);
@@ -135,7 +138,8 @@ export class AuthController {
   // ─── FORGOT PASSWORD ───────────────────────────────────────────────
   // Rate-limited. Always returns 202 to prevent email enumeration.
   @Post('forgot-password')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit(3, 60)
   @HttpCode(HttpStatus.ACCEPTED)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     await this.authService.sendPasswordResetEmail(dto.email);

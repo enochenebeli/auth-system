@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
-const throttler_1 = require("@nestjs/throttler");
+const rate_limit_guard_1 = require("../redis/rate-limit.guard");
 const auth_service_1 = require("./auth.service");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const login_dto_1 = require("./dto/login.dto");
@@ -99,7 +99,8 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('register'),
-    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
+    (0, common_1.UseGuards)(rate_limit_guard_1.RateLimitGuard),
+    (0, rate_limit_guard_1.RateLimit)(5, 60),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
@@ -109,7 +110,8 @@ __decorate([
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('login'),
-    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
+    (0, common_1.UseGuards)(rate_limit_guard_1.RateLimitGuard),
+    (0, rate_limit_guard_1.RateLimit)(5, 60),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
@@ -147,7 +149,8 @@ __decorate([
 ], AuthController.prototype, "verifyEmail", null);
 __decorate([
     (0, common_1.Post)('resend-verification'),
-    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
+    (0, common_1.UseGuards)(rate_limit_guard_1.RateLimitGuard),
+    (0, rate_limit_guard_1.RateLimit)(3, 60),
     (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -156,7 +159,8 @@ __decorate([
 ], AuthController.prototype, "resendVerification", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
-    (0, common_1.UseGuards)(throttler_1.ThrottlerGuard),
+    (0, common_1.UseGuards)(rate_limit_guard_1.RateLimitGuard),
+    (0, rate_limit_guard_1.RateLimit)(3, 60),
     (0, common_1.HttpCode)(common_1.HttpStatus.ACCEPTED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),

@@ -9,12 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RedisModule = void 0;
 const common_1 = require("@nestjs/common");
 const redis_service_1 = require("./redis.service");
+const rate_limit_guard_1 = require("./rate-limit.guard");
 let RedisModule = class RedisModule {
 };
 exports.RedisModule = RedisModule;
 exports.RedisModule = RedisModule = __decorate([
+    (0, common_1.Global)(),
     (0, common_1.Module)({
-        providers: [redis_service_1.RedisService]
+        providers: [redis_service_1.RedisService, rate_limit_guard_1.RateLimitGuard],
+        exports: [redis_service_1.RedisService, rate_limit_guard_1.RateLimitGuard],
     })
 ], RedisModule);
 //# sourceMappingURL=redis.module.js.map

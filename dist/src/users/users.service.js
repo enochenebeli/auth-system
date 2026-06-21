@@ -27,7 +27,7 @@ let UsersService = class UsersService {
             where: { id },
         });
     }
-    async createUser(email, password) {
+    async createUser(email, password, name) {
         const existingUser = await this.findByEmail(email);
         if (existingUser) {
             throw new common_1.ConflictException('A user with this email already exists');
@@ -36,6 +36,7 @@ let UsersService = class UsersService {
         return this.prisma.user.create({
             data: {
                 email,
+                name,
                 passwordHash,
             },
         });

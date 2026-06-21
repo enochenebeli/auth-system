@@ -17,6 +17,7 @@ export declare class AuthController {
     login(dto: LoginDto, req: Request, res: Response): Promise<{
         accessToken: string;
         user: {
+            name: string | null;
             id: string;
             email: string;
             emailVerified: boolean;

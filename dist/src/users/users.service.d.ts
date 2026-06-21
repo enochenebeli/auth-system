@@ -5,7 +5,7 @@ export declare class UsersService {
     constructor(prisma: PrismaService);
     findByEmail(email: string): Promise<User | null>;
     findById(id: string): Promise<User | null>;
-    createUser(email: string, password: string): Promise<User>;
+    createUser(email: string, password: string, name?: string): Promise<User>;
     createOAuthUser(email: string): Promise<User>;
     verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean>;
     markEmailVerified(userId: string): Promise<User>;

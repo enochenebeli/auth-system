@@ -32,25 +32,20 @@ export class UsersService {
   // bcrypt hashes the password with a cost factor of 12. The higher
   // the cost factor, the harder it is to brute force. 12 is the
   // industry standard for production apps.
-  async createUser(email: string, password: string): Promise<User> {
-    // Check if a user with this email already exists
+  async createUser(email: string, password: string, name?: string): Promise<User> {
     const existingUser = await this.findByEmail(email);
 
     if (existingUser) {
-      // ConflictException sends a 409 HTTP response automatically
       throw new ConflictException('A user with this email already exists');
     }
 
-    // Hash the password — bcrypt generates a salt and hashes in one step
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create the user in the database using Prisma
     return this.prisma.user.create({
       data: {
         email,
+        name,
         passwordHash,
-        // emailVerified defaults to false — user must verify via email
-        // twoFactorEnabled defaults to false — user sets this up later
       },
     });
   }

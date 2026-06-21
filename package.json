@@ -19,7 +19,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/throttler": "^6.5.0",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "5.22.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -32,7 +32,6 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.21.0",
-    "prisma": "^5.22.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.1.13",
     "resend": "^6.12.4",
@@ -58,6 +57,7 @@
     "@types/speakeasy": "^2.0.10",
     "@types/uuid": "^11.0.0",
     "@types/yargs": "^17.0.35",
+    "prisma": "5.22.0",
     "typescript": "^5.1.3"
   }
 }

@@ -7,6 +7,7 @@ export declare class LocalStrategy extends LocalStrategy_base {
     private readonly usersService;
     constructor(usersService: UsersService);
     validate(email: string, password: string): Promise<{
+        name: string | null;
         id: string;
         email: string;
         passwordHash: string | null;

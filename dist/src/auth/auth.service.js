@@ -32,7 +32,7 @@ let AuthService = class AuthService {
         this.mailService = mailService;
     }
     async register(dto, meta) {
-        const user = await this.usersService.createUser(dto.email, dto.password);
+        const user = await this.usersService.createUser(dto.email, dto.password, dto.name);
         await this.createAndSendVerificationEmail(user);
         return {
             message: "Registration successful. Please check your email to verify your account.",

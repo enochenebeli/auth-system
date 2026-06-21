@@ -26,6 +26,7 @@ export declare class AuthService {
         accessToken: string;
         refreshToken: string;
         user: {
+            name: string | null;
             id: string;
             email: string;
             emailVerified: boolean;
